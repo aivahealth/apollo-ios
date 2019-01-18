@@ -205,7 +205,7 @@ public class WebSocketTransport: NetworkTransport, WebSocketDelegate {
     self.subscriptions.removeAll()
   }
 
-  func sendPing() {
+  public func sendPing() {
     websocket.write(ping: Data())
   }
   
