@@ -48,14 +48,16 @@ public class WebSocketTransport: NetworkTransport, WebSocketDelegate {
   private let reconnectionInterval: TimeInterval
   fileprivate var sequenceNumber = 0
   fileprivate var reconnected = false
+  fileprivate var pingTimer: Timer?
 
-  public init(request: URLRequest, sendOperationIdentifiers: Bool = false, reconnectionInterval: TimeInterval = 0.5, connectingPayload: GraphQLMap? = [:]) {
+  public init(request: URLRequest, sendOperationIdentifiers: Bool = false, reconnectionInterval: TimeInterval = 0.5, connectingPayload: GraphQLMap? = [:], pongDelegate: WebSocketPongDelegate? = nil) {
     self.connectingPayload = connectingPayload
     self.sendOperationIdentifiers = sendOperationIdentifiers
     self.reconnectionInterval = reconnectionInterval
 
     self.websocket = WebSocketTransport.provider.init(request: request, protocols: protocols)
     self.websocket.delegate = self
+    self.websocket.pongDelegate = pongDelegate
     self.websocket.connect()
   }
   
@@ -202,6 +204,20 @@ public class WebSocketTransport: NetworkTransport, WebSocketDelegate {
     }
     self.queue.removeAll()
     self.subscriptions.removeAll()
+  }
+
+  public func startPinging() {
+    stopPinging()
+    pingTimer = Timer.scheduledTimer(timeInterval: 5, target: self, selector: #selector(sendPing), userInfo: nil, repeats: true)
+  }
+
+  @objc func sendPing() {
+    websocket.write(ping: Data())
+    print("PING!")
+  }
+
+  public func stopPinging() {
+    pingTimer?.invalidate()
   }
   
   private func write(_ str: String, force forced: Bool = false, id: Int? = nil) {
